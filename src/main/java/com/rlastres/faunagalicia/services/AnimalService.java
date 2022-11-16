@@ -9,6 +9,8 @@ public interface AnimalService {
 	
 	public List<Animal> getAllAnimales();
 	public Optional<Animal> getAnimalById(int id);
+	public Optional<Animal> getAnimalByEspecie(String especie);
+	public Optional<Animal> getAnimalByNombreVulgar(String nombre_vulgar);
 	public Animal saveAnimal(Animal a);
 	public boolean deleteAnimalById(int id);
 	

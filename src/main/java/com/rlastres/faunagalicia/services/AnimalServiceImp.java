@@ -41,5 +41,15 @@ public class AnimalServiceImp implements AnimalService{
 			return false;
 		}
 	}
+
+	@Override
+	public Optional<Animal> getAnimalByEspecie(String especie) {
+		return (Optional<Animal>)animal_repo.findByEspecie(especie);
+	}
+
+	@Override
+	public Optional<Animal> getAnimalByNombreVulgar(String nombre_vulgar) {
+		return (Optional<Animal>)animal_repo.findByNombreVulgar(nombre_vulgar);
+	}
 	
 }

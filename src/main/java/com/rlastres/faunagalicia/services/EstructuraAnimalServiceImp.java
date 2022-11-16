@@ -42,4 +42,9 @@ public class EstructuraAnimalServiceImp implements EstructuraAnimalService {
 		}
 	}
 
+	@Override
+	public Optional<EstructuraAnimal> getEstructuraByName(String nombre_estruct) {
+		return (Optional<EstructuraAnimal>)estructura_repo.findByEstructura(nombre_estruct);
+	}
+
 }

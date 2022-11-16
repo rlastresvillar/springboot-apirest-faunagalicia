@@ -1,12 +1,19 @@
 package com.rlastres.faunagalicia.models;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+import javax.validation.constraints.NotBlank;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @Entity
 @Table(name="animales")
@@ -14,29 +21,42 @@ public class Animal {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private int id_animal;
+	@Column(name="id_animal")
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	private int idAnimal;
 	
+	@Schema(example= "Lissotriton helveticus", description = "Nombre de la especie")
+	@NotBlank
 	private String especie;
-	private String nombre_vulgar;
-	private String otras_denom;
+
+	@Schema(example= "Sabanduxa palmada", description = "Nombre común del animal")
+	@NotBlank
+	@Column(name="nombre_vulgar")
+	private String nombreVulgar;
+	
+	@Schema(example= "Tritón palmado", description = "Otros nombres comunes del animal")
+	@Column(name="otras_denom")
+	private String otrasDenominaciones;
+	
+	@Schema(example= "Autóctona", description = "Distribución del animal en Galicia")
 	private String distribucion;
 	
-	@ManyToOne()
+	@ManyToOne(fetch = FetchType.EAGER, targetEntity = EstadoConservacion.class)
     @JoinColumn(name = "id_estado")
 	private EstadoConservacion estado_conservacion;
 	
-	@ManyToOne()
+	@ManyToOne(fetch = FetchType.EAGER, targetEntity = GrupoAnimal.class)
     @JoinColumn(name = "id_grupo")
 	private GrupoAnimal grupo_animal;
 	
-	@ManyToOne()
+	@ManyToOne(fetch = FetchType.EAGER, targetEntity = EstructuraAnimal.class)
     @JoinColumn(name = "id_estructura")
 	private EstructuraAnimal estructura_animal;
 	
 	public Animal() {}
 
 	public int getIdAnimal() {
-		return id_animal;
+		return idAnimal;
 	}
 
 	public String getEspecie() {
@@ -44,11 +64,11 @@ public class Animal {
 	}
 
 	public String getNombreVulgar() {
-		return nombre_vulgar;
+		return nombreVulgar;
 	}
 
 	public String getOtrasDenominaciones() {
-		return otras_denom;
+		return otrasDenominaciones;
 	}
 
 	public String getDistribucion() {
@@ -68,7 +88,7 @@ public class Animal {
 	}
 
 	public void setIdAnimal(int id_animal) {
-		this.id_animal = id_animal;
+		this.idAnimal = id_animal;
 	}
 
 	public void setEspecie(String especie) {
@@ -76,11 +96,11 @@ public class Animal {
 	}
 
 	public void setNombreVulgar(String nombre_vulgar) {
-		this.nombre_vulgar = nombre_vulgar;
+		this.nombreVulgar = nombre_vulgar;
 	}
 
 	public void setOtrasDenominaciones(String otras_denominaciones) {
-		this.otras_denom = otras_denominaciones;
+		this.otrasDenominaciones = otras_denominaciones;
 	}
 
 	public void setDistribucion(String distribucion) {

@@ -3,11 +3,15 @@ package com.rlastres.faunagalicia.controllers;
 import java.util.List;
 import java.util.Optional;
 
+import javax.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,6 +19,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.rlastres.faunagalicia.models.Animal;
+import com.rlastres.faunagalicia.repositories.EstadoConservacionRepo;
+import com.rlastres.faunagalicia.repositories.EstructuraAnimalRepo;
+import com.rlastres.faunagalicia.repositories.GrupoAnimalRepo;
 import com.rlastres.faunagalicia.services.AnimalService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,6 +37,13 @@ public class AnimalController {
 	@Autowired // Inyectamos el servicio
 	AnimalService animal_service;
 	
+	@Autowired
+	GrupoAnimalRepo grupo_repo;
+	@Autowired
+	EstadoConservacionRepo estado_repo;
+	@Autowired
+	EstructuraAnimalRepo estructura_repo;
+	
 	@Operation(summary = "Animales de Galicia", description = "Lista de los animales presentes en Galicia", tags = {"AnimalService"}) //Swagger
 	@GetMapping("/animales")
 	public @ResponseBody ResponseEntity<List<Animal>> getAnimales(){
@@ -43,7 +57,9 @@ public class AnimalController {
 	public @ResponseBody ResponseEntity<Optional<Animal>> getAnimalById(
 			@Parameter(description = "id del animal", required = true, example = "1", in = ParameterIn.PATH) //Swagger
 			@PathVariable("id") int id) {
+		System.out.println("Get animal por id");
 		Optional<Animal> animal  = animal_service.getAnimalById(id);
+		System.out.println("Get animal por id FIN");
 		if(animal.isPresent())
 			return ResponseEntity.ok(animal);
 		else
@@ -52,53 +68,63 @@ public class AnimalController {
 	
 	@Operation(summary = "Actualiza un animal", description = "Actualiza la información relativa a un animal", tags = {"AnimalService"})
 	@PutMapping("/animales/{id}")
-	public @ResponseBody ResponseEntity<Animal> updateEstado(
+	public @ResponseBody ResponseEntity<Animal> updateAnimal(
 			@Parameter(description = "id del animal", required = true, example = "1", in = ParameterIn.PATH) //Swagger
 			@PathVariable(value="id") int id,
-			@RequestBody Animal animal) {
+			@RequestBody @Valid Animal animal) {
 		if(animal_service.getAnimalById(id).isPresent()) {
-			// El grupo existe en BD.
+			// El animal existe en BD.
 			Animal a = animal_service.getAnimalById(id).get();
 			animal.setIdAnimal(id);
 			a.setDistribucion(animal.getDistribucion());
 			a.setEspecie(animal.getEspecie());
 			a.setNombreVulgar(animal.getNombreVulgar());
 			a.setOtrasDenominaciones(animal.getOtrasDenominaciones());
-			a.setEstadoConservacion(animal.getEstadoConservacion());
-			a.setEstructuraAnimal(animal.getEstructuraAnimal());
-			a.setGrupoAnimal(animal.getGrupoAnimal());
+			a.setEstadoConservacion(estado_repo.findByEstado(animal.getEstadoConservacion().getEstado()).get());
+			a.setEstructuraAnimal(estructura_repo.findByEstructura(animal.getEstructuraAnimal().getEstructura()).get());
+			a.setGrupoAnimal(grupo_repo.findByGrupo(animal.getGrupoAnimal().getGrupo()).get());
 			animal_service.saveAnimal(a);
 			return ResponseEntity.ok(a);
 		} else {
-			// El grupo no existe en BD.
+			// El animal no existe en BD.
 			return ResponseEntity.notFound().build();
 		}		
 	}
 	
-//	@Operation(summary = "Crear un nuevo animal", description = "Añadir un nuevo animal", tags = {"AnimalService"})
-//	@PostMapping("/animales")
-//	public @ResponseBody ResponseEntity<Object> addGrupo(
-//			@Parameter(description = "Código del estado de conservación", required = true, example = "EX", in = ParameterIn.QUERY)
-//			@RequestParam(name = "codigo_estado") String codigo_estado,
-//			@Parameter(description = "Nombre del estado de conservación", required = true, example = "En peligro crítico", in = ParameterIn.QUERY)
-//			@RequestParam(name = "nombre_estado") String nombre_estado){
-//		
-//		if (animal_service.getEstadoByCodigo(codigo_estado).isPresent() || animal_service.getEstadoByName(nombre_estado).isPresent()) {
-//			// Grupo existente en BD. No podrá anadirse.
-//			return ResponseEntity.badRequest().body("El estado de conservación con código " + codigo_estado + " y nombre " + nombre_estado + " ya existe");
-//		} else {
-//			EstadoConservacion nuevo_estado = new EstadoConservacion(codigo_estado, nombre_estado);
-//			animal_service.saveEstado(nuevo_estado);
-//		}
-//		
-//		// Comprobación creación exitosa en BD.		
-//		Optional<EstadoConservacion> estado_creado = estado_service.getEstadoByName(nombre_estado);
-//		if (!estado_creado.isPresent() || estado_creado.get() == null) {
-//			return ResponseEntity.internalServerError().body("No se ha podido crear el estado de conservación " + nombre_estado + " con código " + codigo_estado);
-//		} else {
-//			return ResponseEntity.ok(estado_creado.get());
-//		}	
-//	}
+	@Operation(summary = "Crear un nuevo animal", description = "Añadir un nuevo animal a la lista de animales de FaunaGalicia", tags = {"AnimalService"})
+	@PostMapping(path="/animales", produces = "application/json")
+	public @ResponseBody ResponseEntity<Object> addAnimal(
+			@RequestBody @Valid Animal animal) {
+
+		if(animal_service.getAnimalByEspecie(animal.getEspecie()).isPresent())
+			return ResponseEntity.badRequest().body("El animal cuya especie es '" + animal.getEspecie() + "' ya existe");
+		else if(animal_service.getAnimalByNombreVulgar(animal.getNombreVulgar()).isPresent())
+			return ResponseEntity.badRequest().body("El animal cuyo nombre vulgar es '" + animal.getNombreVulgar() + "' ya existe");
+		else {
+			if(!estado_repo.findByEstado(animal.getEstadoConservacion().getEstado()).isPresent())
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("El estado de conservación '" + animal.getEstadoConservacion().getEstado() + "' no existe. Debes crearlo antes de agregar el animal.");
+			if(!estructura_repo.findByEstructura(animal.getEstructuraAnimal().getEstructura()).isPresent())
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("La estructura '" + animal.getEstructuraAnimal().getEstructura() + "' no existe. Debes crearla antes de agregar el animal.");
+			if(!grupo_repo.findByGrupo(animal.getGrupoAnimal().getGrupo()).isPresent())
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("El grupo de animales '" + animal.getGrupoAnimal().getGrupo() + "' no existe. Debes crearlo antes de agregar el animal.");
+
+			Animal a = new Animal();
+			a.setDistribucion(animal.getDistribucion());
+			a.setEspecie(animal.getEspecie());
+			a.setNombreVulgar(animal.getNombreVulgar());
+			a.setOtrasDenominaciones(animal.getOtrasDenominaciones());
+			a.setEstadoConservacion(estado_repo.findByEstado(animal.getEstadoConservacion().getEstado()).get());
+			a.setEstructuraAnimal(estructura_repo.findByEstructura(animal.getEstructuraAnimal().getEstructura()).get());
+			a.setGrupoAnimal(grupo_repo.findByGrupo(animal.getGrupoAnimal().getGrupo()).get());
+			animal_service.saveAnimal(a);
+			
+			Optional<Animal> animal_creado = animal_service.getAnimalByEspecie(animal.getEspecie());
+			if(animal_creado.isPresent())
+				return ResponseEntity.ok(animal_creado.get());
+			else
+				return ResponseEntity.internalServerError().body("No se ha podido crear el animal '" + animal_creado.get().getEspecie() + "'");
+		}	
+	}
 	
 	
 	@Operation(summary = "Suprimir animal", description = "Elimina un animal", tags = {"AnimalService"})
